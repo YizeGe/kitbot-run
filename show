@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Game</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: #111;
+    }
+  </style>
+</head>
+<body>
+  <canvas></canvas>
+  <script>
+    const canvas = document.querySelector("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const CELL_SIZE = 70;
+    const MAP_WIDTH = 20;
+    const MAP_HEIGHT = 12;
+    const WIDTH = CELL_SIZE * MAP_WIDTH;
+    const HEIGHT = CELL_SIZE * MAP_HEIGHT;
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+
+    let keys = {};
+    let car1 = { x: 10, y: 2, score: 0 };
+    let car2 = { x: 10, y: 9, score: 0 };
+    let obstacles1 = [];
+    let obstacles2 = [];
+    let gameOver = false;
+    let startTime = Date.now();
+    const GAME_DURATION = 60000; // 1 minute
+    let obstacleSpeed = 0.2;
+
+    const carImg = new Image();
+    carImg.src = "car.png";
+    const obstacleImg = new Image();
+    obstacleImg.src = "obstacle.png";
+
+    function spawnObstacle() {
+      if (Math.random() < 0.05) obstacles1.push({ x: MAP_WIDTH - 1, y: Math.floor(Math.random() * 5), hit: false });
+      if (Math.random() < 0.05) obstacles2.push({ x: MAP_WIDTH - 1, y: Math.floor(Math.random() * 5) + 6, hit: false });
+    }
+
+    function updateObstacles() {
+      for (let ob of obstacles1) ob.x -= obstacleSpeed;
+      for (let ob of obstacles2) ob.x -= obstacleSpeed;
+      obstacles1 = obstacles1.filter(ob => {
+        if (ob.x < 0) { car1.score += 1; return false; }
+        return true;
+      });
+      obstacles2 = obstacles2.filter(ob => {
+        if (ob.x < 0) { car2.score += 1; return false; }
+        return true;
+      });
+    }
+
+    function checkCollision() {
+      for (let ob of obstacles1) {
+        if (!ob.hit && Math.round(ob.x) === car1.x && ob.y === car1.y) {
+          car1.score = Math.max(0, car1.score - 10);
+          ob.hit = true;
+        }
+      }
+      for (let ob of obstacles2) {
+        if (!ob.hit && Math.round(ob.x) === car2.x && ob.y === car2.y) {
+          car2.score = Math.max(0, car2.score - 10);
+          ob.hit = true;
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = "#1e1e3c";
+      ctx.fillRect(0, 0, WIDTH, HEIGHT / 2);
+      ctx.fillStyle = "#3c1e1e";
+      ctx.fillRect(0, HEIGHT / 2, WIDTH, HEIGHT / 2);
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, HEIGHT / 2);
+      ctx.lineTo(WIDTH, HEIGHT / 2);
+      ctx.stroke();
+
+      for (let ob of obstacles1) ctx.drawImage(obstacleImg, ob.x * CELL_SIZE, ob.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      for (let ob of obstacles2) ctx.drawImage(obstacleImg, ob.x * CELL_SIZE, ob.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      ctx.drawImage(carImg, car1.x * CELL_SIZE, car1.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      ctx.drawImage(carImg, car2.x * CELL_SIZE, car2.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.fillText(`P1 Score: ${car1.score}`, 100, 30);
+      ctx.fillText(`P2 Score: ${car2.score}`, 1000, 30);
+    }
+
+    function moveCars() {
+      if (keys["w"] && car1.y > 0) car1.y -= 1;
+      if (keys["s"] && car1.y < 5) car1.y += 1;
+      if (keys["a"] && car1.x > 0) car1.x -= 1;
+      if (keys["d"] && car1.x < MAP_WIDTH - 1) car1.x += 1;
+
+      if (keys["ArrowUp"] && car2.y > 6) car2.y -= 1;
+      if (keys["ArrowDown"] && car2.y < MAP_HEIGHT - 1) car2.y += 1;
+      if (keys["ArrowLeft"] && car2.x > 0) car2.x -= 1;
+      if (keys["ArrowRight"] && car2.x < MAP_WIDTH - 1) car2.x += 1;
+    }
+
+    function gameLoop() {
+      if (!gameOver) {
+        moveCars();
+        spawnObstacle();
+        updateObstacles();
+        checkCollision();
+        draw();
+
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= GAME_DURATION) {
+          gameOver = true;
+          setTimeout(() => alert(car1.score > car2.score ? "P1 Wins!" : car2.score > car1.score ? "P2 Wins!" : "Draw!"), 100);
+        }
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", (e) => keys[e.key] = true);
+    document.addEventListener("keyup", (e) => keys[e.key] = false);
+
+    window.onload = () => {
+      gameLoop();
+    };
+  </script>
+</body>
+</html>
+
+  
